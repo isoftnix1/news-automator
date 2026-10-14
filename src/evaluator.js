@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { log } from './utils.js';
 
-const SYSTEM_RULES = `You are an industrial market-intelligence analyst. Evaluate whether a news article is genuinely useful to a business tracking BESS/energy storage, EV batteries, heavy fabrication, robotic welding, industrial/company automation, robotics and investments. Prioritize confirmed investments, capex, factory/project announcements, contracts, acquisitions, partnerships with concrete outcomes, deployments, production capacity, major product launches and regulatory decisions with direct industry impact. Reject generic explainers, opinion pieces, thin keyword mentions, job listings, stock-price-only stories, repeated syndicated stories and unrelated uses of words like battery/robot. Do not invent facts, numbers, locations or company names. If evidence is weak, score low. Return only valid JSON.`;
+const DEFAULT_SYSTEM_RULES = `You are a market-intelligence and business news analyst. Evaluate whether a news article is genuinely useful to a business or professional tracking commercial, industrial, technology, and market developments. Prioritize confirmed investments, capex, project announcements, contracts, tenders, acquisitions, partnerships with concrete outcomes, deployments, manufacturing/production capacity, technology breakthroughs, major product launches, and regulatory decisions with direct industry impact. Reject generic explainers, opinion pieces, thin keyword mentions, job listings, stock-price-only stories, repeated syndicated stories, and superficial or unrelated uses of words. Do not invent facts, numbers, locations or company names. If evidence is weak, score low. Return only valid JSON.`;
 
 const CANDIDATE_MODELS = [
   process.env.GEMINI_MODEL || 'gemini-3.8-flash',
@@ -20,14 +20,14 @@ function cleanJsonText(raw = '') {
   return text;
 }
 
-async function callGeminiWithRetry(prompt, key) {
+async function callGeminiWithRetry(prompt, key, systemRules = DEFAULT_SYSTEM_RULES) {
   let lastError;
   for (const model of CANDIDATE_MODELS) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const response = await axios.post(url, {
-          systemInstruction: { parts: [{ text: SYSTEM_RULES }] },
+          systemInstruction: { parts: [{ text: systemRules }] },
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.1,
@@ -73,9 +73,18 @@ export async function evaluateArticle(article) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY is required for reliable AI relevance filtering.');
 
-  const prompt = `${SYSTEM_RULES}
+  const focusTopics = [
+    article.categoryHint,
+    ...(article.matchedKeywords || [])
+  ].filter(Boolean).join(', ') || 'market and industry developments';
 
-Score this article for practical business value from 0 to 100. The bot only saves scores >= ${Number(process.env.MIN_RELEVANCE_SCORE || 75)}.
+  const dynamicSystemRules = `You are a market-intelligence and business news analyst. Evaluate whether a news article is genuinely useful to a business or professional tracking topics related to: ${focusTopics}.
+Prioritize confirmed investments, capex, factory/project announcements, contracts, tenders, acquisitions, partnerships with concrete outcomes, commercial deployments, manufacturing capacity, technology breakthroughs, major product launches, and regulatory decisions with direct impact on these topics.
+Reject generic explainers, opinion pieces, thin keyword mentions, job listings, stock-price-only stories, repeated syndicated stories, and unrelated uses of words. Do not invent facts, numbers, locations or company names. If evidence is weak, score low. Return only valid JSON.`;
+
+  const prompt = `${dynamicSystemRules}
+
+Score this article for practical business value from 0 to 100 regarding: ${focusTopics}. The bot only saves scores >= ${Number(process.env.MIN_RELEVANCE_SCORE || 75)}.
 
 Article JSON:
 ${JSON.stringify({
@@ -106,7 +115,7 @@ Return this exact JSON shape:
 The summary must not claim facts absent from the supplied article details. If the headline alone is insufficient, use conservative wording and lower the score.`;
 
   try {
-    const rawText = await callGeminiWithRetry(prompt, key);
+    const rawText = await callGeminiWithRetry(prompt, key, dynamicSystemRules);
     const text = cleanJsonText(rawText);
 
     let parsed;

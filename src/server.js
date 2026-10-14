@@ -138,9 +138,39 @@ app.post('/api/scan', async (req, res) => {
       );
     }
 
+    // If specific category filter passed from UI
+    if (req.body.category && req.body.category !== 'All') {
+      const cat = req.body.category.toLowerCase();
+      fresh = fresh.filter(a =>
+        (a.categoryHint || '').toLowerCase().includes(cat) ||
+        (a.matchedKeywords || []).some(k => k.toLowerCase().includes(cat))
+      );
+    }
+
     log('info', `[Web UI] Discovered ${candidates.length} total, ${fresh.length} fresh candidates`);
 
-    const toEvaluate = fresh.slice(0, maxEvals);
+    let toEvaluate = [];
+    if (req.body.keyword || (req.body.category && req.body.category !== 'All')) {
+      toEvaluate = fresh.slice(0, maxEvals);
+    } else {
+      // Balanced selection: group candidates by primary category/hint
+      const byCategory = new Map();
+      for (const item of fresh) {
+        const cat = item.categoryHint || item.matchedKeywords?.[0] || 'General';
+        if (!byCategory.has(cat)) byCategory.set(cat, []);
+        byCategory.get(cat).push(item);
+      }
+
+      // Round-robin pick across categories so every category gets evaluated
+      const categoryBuckets = Array.from(byCategory.values());
+      while (toEvaluate.length < maxEvals && categoryBuckets.some(b => b.length > 0)) {
+        for (const bucket of categoryBuckets) {
+          if (bucket.length > 0 && toEvaluate.length < maxEvals) {
+            toEvaluate.push(bucket.shift());
+          }
+        }
+      }
+    }
     const evaluatedResults = [];
 
     for (const article of toEvaluate) {

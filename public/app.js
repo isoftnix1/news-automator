@@ -25,6 +25,7 @@ const el = {
   addKeywordForm: document.getElementById('addKeywordForm'),
   addKeywordCategory: document.getElementById('addKeywordCategory'),
   newKeywordInput: document.getElementById('newKeywordInput'),
+  newCategoryBtn: document.getElementById('newCategoryBtn'),
   resetKeywordsBtn: document.getElementById('resetKeywordsBtn'),
 
   searchInput: document.getElementById('searchInput'),
@@ -114,6 +115,42 @@ async function saveKeywords() {
   }
 }
 
+function promptNewCategory() {
+  const catName = window.prompt('Enter new category name (e.g. Agriculture, Aerospace, Solar):');
+  if (!catName || !catName.trim()) return;
+  const clean = catName.trim();
+  const exists = (state.config.categories || []).some(c => c.name.toLowerCase() === clean.toLowerCase());
+  if (exists) {
+    showToast(`Category "${clean}" already exists`);
+    state.activeCategoryTab = (state.config.categories || []).find(c => c.name.toLowerCase() === clean.toLowerCase()).name;
+    renderCategoryTabs();
+    renderKeywordsTags();
+    updateCategoryDropdowns();
+    return;
+  }
+  state.config.categories.push({ name: clean, keywords: [] });
+  state.activeCategoryTab = clean;
+  renderCategoryTabs();
+  renderKeywordsTags();
+  updateCategoryDropdowns();
+  saveKeywords();
+  showToast(`Category "${clean}" created! Now add keywords to it.`);
+}
+
+function deleteCurrentCategory() {
+  if (state.activeCategoryTab === 'All') return;
+  const cat = state.activeCategoryTab;
+  if (confirm(`Delete the "${cat}" category and all its keywords?`)) {
+    state.config.categories = (state.config.categories || []).filter(c => c.name !== cat);
+    state.activeCategoryTab = 'All';
+    renderCategoryTabs();
+    renderKeywordsTags();
+    updateCategoryDropdowns();
+    saveKeywords();
+    showToast(`Category "${cat}" removed`);
+  }
+}
+
 function renderCategoryTabs() {
   const container = el.categoryTabs;
   container.innerHTML = '';
@@ -139,6 +176,15 @@ function renderCategoryTabs() {
     });
     container.appendChild(btn);
   });
+
+  const addTab = document.createElement('button');
+  addTab.className = 'cat-tab';
+  addTab.style.border = '1px dashed var(--border)';
+  addTab.style.color = 'var(--text-muted)';
+  addTab.textContent = '+ New Category';
+  addTab.title = 'Create a new category';
+  addTab.addEventListener('click', promptNewCategory);
+  container.appendChild(addTab);
 }
 
 function renderKeywordsTags() {
@@ -185,7 +231,16 @@ function renderKeywordsTags() {
   });
 
   if (keywordsToShow.length === 0) {
-    container.innerHTML = '<span style="color: var(--text-muted); font-size: 0.8rem;">No keywords in this category.</span>';
+    container.innerHTML = '<span style="color: var(--text-muted); font-size: 0.8rem;">No keywords in this category. Type a keyword below to add.</span>';
+  }
+
+  if (state.activeCategoryTab !== 'All') {
+    const delWrap = document.createElement('div');
+    delWrap.style.width = '100%';
+    delWrap.style.marginTop = '6px';
+    delWrap.innerHTML = `<button type="button" class="btn-text" style="color: #EF4444; font-size: 0.76rem; cursor: pointer; text-decoration: underline;">Delete "${escapeHtml(state.activeCategoryTab)}" Category</button>`;
+    delWrap.querySelector('button').addEventListener('click', deleteCurrentCategory);
+    container.appendChild(delWrap);
   }
 }
 
@@ -330,18 +385,31 @@ function renderArticles() {
 async function triggerScan() {
   el.scanBtn.disabled = true;
   el.loadingBanner.style.display = 'flex';
-  el.loadingText.textContent = 'Searching latest news for configured keywords...';
+
+  let scanCategory = null;
+  if (state.feedCategory && state.feedCategory !== 'All') {
+    scanCategory = state.feedCategory;
+  } else if (state.activeCategoryTab && state.activeCategoryTab !== 'All') {
+    scanCategory = state.activeCategoryTab;
+  }
+
+  el.loadingText.textContent = scanCategory 
+    ? `Searching latest news for ${scanCategory}...` 
+    : 'Searching latest news for configured keywords...';
 
   try {
+    const payload = { maxEvals: 20 };
+    if (scanCategory) payload.category = scanCategory;
+
     const res = await fetch('/api/scan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ maxEvals: 15 })
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
 
     if (data.success) {
-      showToast(`Scan complete: Found ${data.evaluatedCount} news items`);
+      showToast(`Scan complete: Evaluated ${data.evaluatedCount} news items`);
       await fetchArticles();
       await fetchStatus();
     } else {
@@ -418,6 +486,11 @@ function setupEvents() {
       saveKeywords();
     }
   });
+
+  // Add Category Button
+  if (el.newCategoryBtn) {
+    el.newCategoryBtn.addEventListener('click', promptNewCategory);
+  }
 
   // Reset Keywords
   el.resetKeywordsBtn.addEventListener('click', async () => {

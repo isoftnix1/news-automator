@@ -5,6 +5,10 @@
       "keywords": ["BESS", "battery energy storage system", "grid scale energy storage", "energy storage project", "battery storage plant"]
     },
     {
+      "name": "Agriculture",
+      "keywords": ["agriculture", "agritech", "smart farming", "precision agriculture", "agricultural equipment", "farm mechanization", "agri drone"]
+    },
+    {
       "name": "EV Batteries",
       "keywords": ["EV battery manufacturing", "electric vehicle battery", "battery gigafactory", "solid state battery", "battery recycling plant"]
     },
