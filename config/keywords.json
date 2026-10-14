@@ -1,0 +1,83 @@
+{
+  "categories": [
+    {
+      "name": "BESS & Energy Storage",
+      "keywords": [
+        "BESS",
+        "battery energy storage system",
+        "grid scale energy storage",
+        "energy storage project",
+        "battery storage plant",
+        "sodium ion battery"
+      ]
+    },
+    {
+      "name": "EV Batteries",
+      "keywords": [
+        "EV battery manufacturing",
+        "electric vehicle battery",
+        "battery gigafactory",
+        "solid state battery",
+        "battery recycling plant"
+      ]
+    },
+    {
+      "name": "Heavy Fabrication",
+      "keywords": [
+        "heavy fabrication",
+        "heavy engineering manufacturing",
+        "steel fabrication plant",
+        "pressure vessel manufacturing",
+        "industrial fabrication contract"
+      ]
+    },
+    {
+      "name": "Robotic Welding",
+      "keywords": [
+        "robotic welding",
+        "welding automation",
+        "robotic welding cell",
+        "collaborative welding robot",
+        "automated welding line"
+      ]
+    },
+    {
+      "name": "Industrial & Company Automation",
+      "keywords": [
+        "industrial automation",
+        "factory automation",
+        "manufacturing automation",
+        "warehouse automation",
+        "machine vision manufacturing",
+        "Industry 4.0 factory"
+      ]
+    },
+    {
+      "name": "Investments & Deals",
+      "keywords": [
+        "robotics investment",
+        "factory investment",
+        "manufacturing capex",
+        "automation contract",
+        "industrial acquisition",
+        "robotics funding",
+        "manufacturing joint venture",
+        "new manufacturing plant"
+      ]
+    },
+    {
+      "name": "Robotics",
+      "keywords": [
+        "industrial robot deployment",
+        "robotics manufacturing",
+        "humanoid robot commercial deployment",
+        "robotics company contract",
+        "robotics production facility"
+      ]
+    }
+  ],
+  "regions": [
+    "India",
+    "worldwide"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "keyword-news-intelligence-bot",
+  "version": "1.0.0",
+  "description": "Find, score, summarize and save high-value industry news to Google Sheets.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "run-once": "node src/index.js --once",
+    "ui": "node src/server.js",
+    "dev": "node src/server.js",
+    "test:sheets": "node scripts/test-sheets.js",
+    "test:gemini": "node scripts/test-gemini.js",
+    "test:discovery": "node scripts/test-discovery.js",
+    "sync": "node scripts/sync-queue.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^5.3.0",
+    "fast-xml-parser": "^4.5.1",
+    "googleapis": "^144.0.0",
+    "node-cron": "^3.0.3"
+  }
+}

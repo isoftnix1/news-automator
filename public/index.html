@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>News Monitor</title>
+  <meta name="description" content="Simple industry news and deal monitor.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Top Navigation -->
+  <header class="top-nav">
+    <div class="nav-left">
+      <h1 class="nav-title">News Monitor</h1>
+      <span class="nav-subtitle">Industrial & Market Updates</span>
+    </div>
+    <div class="nav-right">
+      <div id="sheetsStatus" class="sheet-indicator" title="Google Sheets connection status">
+        <span class="status-dot" id="sheetDot"></span>
+        <span id="sheetStatusText">Checking sheet...</span>
+      </div>
+      <a href="#" target="_blank" id="sheetLink" class="link-btn" style="display: none;">Open Sheet</a>
+      <button id="syncBtn" class="btn btn-outline" title="Sync queued articles to Google Sheet">
+        Sync to Sheet (<span id="queueCount">0</span>)
+      </button>
+      <button id="scanBtn" class="btn btn-primary">
+        Find Latest News
+      </button>
+    </div>
+  </header>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Loading Bar -->
+  <div id="loadingBanner" class="loading-banner" style="display: none;">
+    <span class="loader"></span>
+    <span id="loadingText">Searching latest news articles...</span>
+  </div>
+
+  <div class="container">
+    <!-- Keywords Section -->
+    <section class="keywords-section">
+      <div class="section-header">
+        <div>
+          <h2>Search Keywords</h2>
+          <p class="section-desc">The bot monitors news matching these keywords. You can add or remove terms anytime.</p>
+        </div>
+        <button id="resetKeywordsBtn" class="btn-text">Reset to Defaults</button>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div class="category-tabs" id="categoryTabs">
+        <!-- Rendered dynamically: All, BESS & Energy Storage, EV Batteries, etc. -->
+      </div>
+
+      <!-- Keyword Tags Area -->
+      <div class="keywords-box">
+        <div class="tags-container" id="keywordsTags">
+          <!-- Keyword pills rendered here -->
+        </div>
+
+        <form id="addKeywordForm" class="add-keyword-bar">
+          <select id="addKeywordCategory" class="select-input">
+            <!-- Dynamic category options -->
+          </select>
+          <input type="text" id="newKeywordInput" placeholder="Add a new keyword..." required>
+          <button type="submit" class="btn btn-secondary">+ Add</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- News Results Section -->
+    <section class="news-section">
+      <div class="news-controls">
+        <div class="search-wrap">
+          <input type="text" id="searchInput" placeholder="Search by headline, company, or location...">
+        </div>
+        <div class="filter-wrap">
+          <select id="feedCategorySelect" class="select-input">
+            <option value="All">All Categories</option>
+          </select>
+          <button id="refreshBtn" class="btn btn-outline" title="Refresh list">Refresh</button>
+        </div>
+      </div>
+
+      <div class="results-meta">
+        <span id="resultsCount">Loading articles...</span>
+      </div>
+
+      <!-- Articles List -->
+      <div id="articlesList" class="articles-list">
+        <!-- Article rows rendered here -->
+      </div>
+    </section>
+  </div>
+
+  <!-- Sheets Setup Modal -->
+  <div id="sheetModal" class="modal" style="display: none;">
+    <div class="modal-box">
+      <div class="modal-top">
+        <h3>Google Sheet Setup</h3>
+        <button id="closeModalBtn" class="close-x">&times;</button>
+      </div>
+      <div class="modal-content">
+        <label style="font-weight: 600; font-size: 0.82rem;">1. Google Sheet Link or ID:</label>
+        <div class="copy-field">
+          <input type="text" id="targetSheetUrlInput" placeholder="Paste Google Sheet URL (https://docs.google.com/spreadsheets/d/.../edit)">
+          <button id="saveSheetUrlBtn" class="btn btn-secondary">Save URL</button>
+        </div>
+
+        <label style="font-weight: 600; font-size: 0.82rem; margin-top: 8px;">2. Share with this Service Account Email (Editor):</label>
+        <div class="copy-field">
+          <input type="text" id="serviceEmailInput" readonly value="news-bot-sa@news-intelligence-bot.iam.gserviceaccount.com">
+          <button id="copyEmailBtn" class="btn btn-secondary">Copy Email</button>
+        </div>
+
+        <ol class="steps-list" style="margin-top: 4px;">
+          <li>Open your Google Sheet: <a href="#" target="_blank" id="modalSheetLink">Open Spreadsheet</a></li>
+          <li>Click the <b>Share</b> button in the top right corner.</li>
+          <li>Paste the service account email above and choose <b>Editor</b>.</li>
+          <li>Click <b>Send / Share</b>.</li>
+        </ol>
+
+        <div id="modalAlert" style="font-size: 0.8rem; padding: 6px 10px; border-radius: 6px; display: none;"></div>
+      </div>
+      <div class="modal-bottom">
+        <button id="verifySheetBtn" class="btn btn-secondary">Verify & Sync All News</button>
+        <button id="doneModalBtn" class="btn btn-primary">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
