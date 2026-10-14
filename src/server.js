@@ -76,9 +76,13 @@ app.get('/api/articles', async (req, res) => {
 
     if (category && category !== 'All') {
       const catLower = category.toLowerCase();
+      const catRoot = catLower.length >= 5 ? catLower.slice(0, 5) : catLower;
       articles = articles.filter(a => {
         const cat = (a.evaluation?.category || a.category || a.article?.categoryHint || '').toLowerCase();
-        return cat.includes(catLower);
+        const keywords = (a.article?.matchedKeywords || []).map(k => k.toLowerCase());
+        return cat.includes(catLower) || catLower.includes(cat) ||
+               cat.includes(catRoot) ||
+               keywords.some(k => k.includes(catLower) || catLower.includes(k));
       });
     }
 

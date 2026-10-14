@@ -279,6 +279,7 @@ async function fetchArticles() {
     if (state.searchQuery) {
       params.append('q', state.searchQuery);
     }
+    params.append('minScore', '75');
 
     const res = await fetch(`/api/articles?${params.toString()}`);
     const data = await res.json();
