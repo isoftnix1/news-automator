@@ -44,6 +44,12 @@ const COLUMN_WIDTHS = [
 const QUEUE_FILE = path.resolve(process.cwd(), 'data', 'offline_queue.json');
 
 export async function getClientEmail() {
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    try {
+      const parsed = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      return parsed.client_email || 'Service Account';
+    } catch {}
+  }
   try {
     const credPath = process.env.GOOGLE_SERVICE_ACCOUNT_FILE || './credentials.json';
     const content = await fs.readFile(credPath, 'utf8');
@@ -68,11 +74,25 @@ function printPermissionWarning(email, sheetId) {
 }
 
 async function getSheetsClient() {
-  const keyFile = process.env.GOOGLE_SERVICE_ACCOUNT_FILE || './credentials.json';
-  const auth = new google.auth.GoogleAuth({
-    keyFile,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets']
-  });
+  let auth;
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    try {
+      const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      auth = new google.auth.GoogleAuth({
+        credentials,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets']
+      });
+    } catch (e) {
+      log('warn', `Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON: ${e.message}`);
+    }
+  }
+  if (!auth) {
+    const keyFile = process.env.GOOGLE_SERVICE_ACCOUNT_FILE || './credentials.json';
+    auth = new google.auth.GoogleAuth({
+      keyFile,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
+  }
   return google.sheets({ version: 'v4', auth });
 }
 
