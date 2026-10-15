@@ -115,6 +115,16 @@ export function getArticleDate(article) {
   return new Date().toISOString().slice(0, 10);
 }
 
+export function getArticleTabName(article) {
+  const dateStr = getArticleDate(article);
+  const period = (process.env.SHEET_TAB_PERIOD || 'monthly').toLowerCase();
+  if (period === 'daily') {
+    return dateStr; // e.g. 2026-10-15
+  }
+  return dateStr.slice(0, 7); // e.g. 2026-10 (Monthly tabs prevent hitting Google Sheets 200-tab limit)
+}
+
+
 export async function ensureTab(sheets, title) {
   const id = spreadsheetId();
   const metadata = await sheets.spreadsheets.get({ spreadsheetId: id });
@@ -348,11 +358,11 @@ async function appendArticlesDirect(sheets, items) {
   const id = spreadsheetId();
   const mode = (process.env.SHEET_DATE_MODE || 'both').toLowerCase();
 
-  const byDate = new Map();
+  const byTab = new Map();
   for (const item of items) {
-    const d = getArticleDate(item.article);
-    if (!byDate.has(d)) byDate.set(d, []);
-    byDate.get(d).push(item);
+    const tabName = getArticleTabName(item.article);
+    if (!byTab.has(tabName)) byTab.set(tabName, []);
+    byTab.get(tabName).push(item);
   }
 
   // 1. Append to Master Tab
@@ -370,20 +380,20 @@ async function appendArticlesDirect(sheets, items) {
     log('info', `Appended ${masterValues.length} rows to master tab '${masterTab()}'`);
   }
 
-  // 2. Append to Date-Wise Tabs
+  // 2. Append to Periodic (Monthly / Daily) Tabs
   if (mode === 'both' || mode === 'tabs') {
-    for (const [dateStr, dateItems] of byDate.entries()) {
-      const dateTabInfo = await ensureTab(sheets, dateStr);
-      const dateValues = dateItems.map(({ article: a, evaluation: e }) => formatArticleRow(a, e));
+    for (const [tabName, tabItems] of byTab.entries()) {
+      const tabInfo = await ensureTab(sheets, tabName);
+      const tabValues = tabItems.map(({ article: a, evaluation: e }) => formatArticleRow(a, e));
       await sheets.spreadsheets.values.append({
         spreadsheetId: id,
-        range: range(dateStr, 'A:P'),
+        range: range(tabName, 'A:P'),
         valueInputOption: 'USER_ENTERED',
         insertDataOption: 'INSERT_ROWS',
-        requestBody: { values: dateValues }
+        requestBody: { values: tabValues }
       });
-      await sortSheetByDate(sheets, id, dateTabInfo.sheetId);
-      log('info', `Appended ${dateValues.length} rows to date tab '${dateStr}'`);
+      await sortSheetByDate(sheets, id, tabInfo.sheetId);
+      log('info', `Appended ${tabValues.length} rows to sub-sheet tab '${tabName}'`);
     }
   }
 
