@@ -351,6 +351,12 @@ app.get('/api/status', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  log('info', `Intelligence Web Dashboard active at http://localhost:${PORT}`);
+// Health check endpoint for cloud hosting / Render
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
 });
+
+app.listen(PORT, '0.0.0.0', () => {
+  log('info', `Intelligence Web Dashboard active at http://0.0.0.0:${PORT}`);
+});
+
