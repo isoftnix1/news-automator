@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import cron from 'node-cron';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { discoverArticles } from './discovery.js';
 import { evaluateArticle } from './evaluator.js';
 import { ensureSheet, readExistingUrls, appendArticles, saveToOfflineQueue, flushOfflineQueue } from './sheets.js';
@@ -79,14 +81,19 @@ export async function runCycle() {
 const everyHours = Math.max(1, Math.min(23, Number(process.env.SEARCH_EVERY_HOURS || 3)));
 const schedule = `0 */${everyHours} * * *`;
 
-if (process.argv.includes('--once')) {
-  await runCycle();
-  process.exit(0);
+const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isDirectRun) {
+  if (process.argv.includes('--once')) {
+    await runCycle();
+    process.exit(0);
+  }
+
+  if ((process.env.RUN_ON_START || 'true').toLowerCase() === 'true') {
+    await runCycle();
+  }
+
+  cron.schedule(schedule, () => void runCycle(), { timezone: 'UTC' });
+  log('info', `News bot running. Schedule: ${schedule} (UTC); threshold: ${process.env.MIN_RELEVANCE_SCORE || 75}/100`);
 }
 
-if ((process.env.RUN_ON_START || 'true').toLowerCase() === 'true') {
-  await runCycle();
-}
-
-cron.schedule(schedule, () => void runCycle(), { timezone: 'UTC' });
-log('info', `News bot running. Schedule: ${schedule} (UTC); threshold: ${process.env.MIN_RELEVANCE_SCORE || 75}/100`);

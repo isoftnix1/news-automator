@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cron from 'node-cron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +8,7 @@ import { loadConfig, discoverArticles } from './discovery.js';
 import { evaluateArticle } from './evaluator.js';
 import { ensureSheet, appendArticles, readExistingUrls, getClientEmail, flushOfflineQueue } from './sheets.js';
 import { loadStoredArticles, upsertStoredArticles } from './storage.js';
+import { runCycle } from './index.js';
 import { stableKey, log } from './utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -356,7 +358,38 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
+// Automated Trigger Endpoint (usable by external pingers / cron services / webhooks)
+app.all(['/api/trigger-cycle', '/api/cron'], (req, res) => {
+  log('info', 'Triggering automatic news discovery cycle via API endpoint...');
+  runCycle().catch(err => log('error', `Automated cycle error: ${err.message}`));
+  res.json({
+    success: true,
+    message: 'Automated news discovery & Google Sheets sync cycle launched in background.'
+  });
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   log('info', `Intelligence Web Dashboard active at http://0.0.0.0:${PORT}`);
+
+  // Automated Background Scheduler
+  const autoCronEnabled = (process.env.AUTO_CRON_ENABLED || 'true').toLowerCase() === 'true';
+  if (autoCronEnabled) {
+    const everyHours = Math.max(1, Math.min(23, Number(process.env.SEARCH_EVERY_HOURS || 3)));
+    const cronExpression = `0 */${everyHours} * * *`;
+    cron.schedule(cronExpression, () => {
+      log('info', `Automated cron triggered (${cronExpression}). Running discovery & sync...`);
+      void runCycle();
+    }, { timezone: 'UTC' });
+    log('info', `Automated background bot active inside server. Schedule: every ${everyHours}h (${cronExpression} UTC)`);
+
+    // Run first cycle automatically on startup after server is initialized
+    if ((process.env.RUN_ON_START || 'true').toLowerCase() === 'true') {
+      log('info', 'RUN_ON_START is true: queueing first automatic discovery cycle in 5 seconds...');
+      setTimeout(() => {
+        void runCycle();
+      }, 5000);
+    }
+  }
 });
+
 
